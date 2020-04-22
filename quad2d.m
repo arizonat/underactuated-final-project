@@ -13,16 +13,16 @@ use_discrete = true;
 m = 0.486;
 r = 0.25;
 iz = 0.00383;
-g = 1.0;
+g = 9.81;
 
 dt = 0.01;
 plot_limit = 2;
 final_eps = 0.05;
-max_sim_time = 5;
+max_sim_time = 10;
 
-% nominal conditions
-x0 = [0 0 0 0 0 0];
-u0 = m*g*0.5*[1 1];
+% goal conditions
+xg = [1 1 0 0 0 0]';
+ug = m*g*0.5*[1 1]';
 
 % LQR
 Q = diag([10 10 90 1 1 r/2/pi]);
@@ -40,13 +40,17 @@ f = [x4;
      (1/iz)*r*(u1-u2)];
  
 f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-m*g; (1/iz)*r*(u(1)-u(2))];
- 
+
 %% Linearize
 A_sym = jacobian(f,[x1 x2 x3 x4 x5 x6]);
 B_sym = jacobian(f,[u1 u2]);
 
-A = eval(subs(A_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0 u0]));
-B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0 u0]));
+% for fast linearization:
+% A_func = matlabFunction(A_sym)
+% B_func = matlabFunction(B_sym)
+
+A = eval(subs(A_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[xg; ug]'));
+B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[xg; ug]'));
 
 %% Discrete-LQR
 [Kd Sd] = lqrd(A,B,Q,R,dt);
@@ -61,9 +65,9 @@ xs = [x];
 for t = ts
     % Update dynamics
     if use_discrete
-        u = -Kd*x;
+        u = ug-Kd*(x-xg);
     else
-        u = -K*x;
+        u = ug-K*(x-xg);
     end
     x = x + f_func(x,u) * dt;
     xs = [xs x];
@@ -76,12 +80,11 @@ N = 1:size(ts,2);
 xlim([-plot_limit plot_limit]);
 ylim([-plot_limit plot_limit]);
 
-disp('huh')
-
 qx = xs(1,1);
 qy = xs(2,1);
 
 plot(xs(1,1),xs(2,1),'gx');
+plot(xs(1,end),xs(2,end),'ro');
 
 p = plot(qx,qy);
 p.XDataSource = 'qx';
@@ -106,12 +109,12 @@ for n=N
     refreshdata
     drawnow
     
-    if norm(x) < final_eps
+    if norm(x-xg) < final_eps
         break;
     end
 end
 
-plot(xs(1,end),xs(2,end),'ro');
+
 disp('done')
 hold off;
 
