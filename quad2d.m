@@ -45,12 +45,13 @@ f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(
 A_sym = jacobian(f,[x1 x2 x3 x4 x5 x6]);
 B_sym = jacobian(f,[u1 u2]);
 
-% for fast linearization:
-% A_func = matlabFunction(A_sym)
-% B_func = matlabFunction(B_sym)
+% for fast linearization (use this repeatedly, not useful for single goal
+% points)
+A_func = matlabFunction(A_sym,'Vars',[x1 x2 x3 x4 x5 x6 u1 u2]);
+B_func = matlabFunction(B_sym,'Vars',[x1 x2 x3 x4 x5 x6 u1 u2]);
 
-A = eval(subs(A_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[xg; ug]'));
-B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[xg; ug]'));
+A = A_func(xg(1),xg(2),xg(3),xg(4),xg(5),xg(6),ug(1),ug(2));
+B = B_func(xg(1),xg(2),xg(3),xg(4),xg(5),xg(6),ug(1),ug(2));
 
 %% Discrete-LQR
 [Kd Sd] = lqrd(A,B,Q,R,dt);
