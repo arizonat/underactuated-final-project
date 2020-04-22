@@ -8,7 +8,7 @@ clear all
 %% General parameters
 % state = [x, y, theta, x_d, y_d, theta_d], input = [right, left]
 
-use_discrete = false;
+use_discrete = true;
 
 m = 0.486;
 r = 0.25;
@@ -18,7 +18,7 @@ g = 9.81;
 dt = 0.01;
 plot_limit = 2;
 final_eps = 0.05;
-max_sim_time = 4;
+max_sim_time = 50;
 
 % nominal conditions
 x0 = [0 0 0 0 0 0];
@@ -52,54 +52,59 @@ B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0 u0]));
 [Kd Sd] = lqrd(A,B,Q,R,dt);
 [K S] = lqr(A,B,Q,R);
 
-%% Slow Simulation
-figure;
-hold on;
-xlim([-plot_limit plot_limit]);
-ylim([-plot_limit plot_limit]);
-
+%% Simulate
 ts = 0:dt:max_sim_time;
 x = rand(6,1);
-x(1:2) = x(1:2) * plot_limit;
+x(1:2) = x(1:2) * 2*plot_limit - plot_limit;
 xs = [x];
-qx = x(1);
-qy = x(2);
-
-plot(x(1,1),x(2,1),'gx');
-
-p = plot(qx,qy);
-p.XDataSource = 'qx';
-p.YDataSource = 'qy';
-
-qpx = [x(1)-cos(x(3)) x(1)+cos(x(3))];
-qpy = [x(2)-sin(x(3)) x(2)+sin(x(3))];
-qp = plot(qpy, qpx, 'r-');
-qp.XDataSource = 'qpx';
-qp.YDataSource = 'qpy';
 
 for t = ts
     % Update dynamics
     if use_discrete
         u = -Kd*x;
-        xd = A*x + B*u;
     else
         u = -K*x;
-        xd = f_func(x,u);
     end
-    x = x + xd * dt;
+    x = x + f_func(x,u) * dt;
     xs = [xs x];
-    
+end
+
+%% Plot simulation
+figure;
+hold on;
+N = 1:size(ts,2);
+xlim([-plot_limit plot_limit]);
+ylim([-plot_limit plot_limit]);
+
+disp('huh')
+
+qx = xs(1,1);
+qy = xs(2,1);
+
+plot(xs(1,1),xs(2,1),'gx');
+
+p = plot(qx,qy);
+p.XDataSource = 'qx';
+p.YDataSource = 'qy';
+
+qpx = [xs(1,1)-cos(xs(3,1)) xs(1)+cos(xs(3,1))];
+qpy = [xs(2,1)-sin(xs(3,1)) xs(2)+sin(xs(3,1))];
+qp = plot(qpy, qpx, 'r-');
+qp.XDataSource = 'qpx';
+qp.YDataSource = 'qpy';
+drawnow
+
+for n=N
     % Update simulation data
-    qx = xs(1,:);
-    qy = xs(2,:);
+    qx = xs(1,1:n);
+    qy = xs(2,1:n);
     
-    qpx = [x(1)-cos(x(3)) x(1)+cos(x(3))];
-    qpy = [x(2)-sin(x(3)) x(2)+sin(x(3))];
+    qpx = [xs(1,n)-cos(xs(3,n)) xs(1,n)+cos(xs(3,n))];
+    qpy = [xs(2,n)-sin(xs(3,n)) xs(2,n)+sin(xs(3,n))];
     
     % Update the simulation
     refreshdata
     drawnow
-    %pause(dt);
     
     if norm(x) < final_eps
         break;
