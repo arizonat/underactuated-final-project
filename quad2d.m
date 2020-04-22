@@ -13,12 +13,12 @@ use_discrete = true;
 m = 0.486;
 r = 0.25;
 iz = 0.00383;
-g = 9.81;
+g = 1.0;
 
 dt = 0.01;
 plot_limit = 2;
 final_eps = 0.05;
-max_sim_time = 50;
+max_sim_time = 5;
 
 % nominal conditions
 x0 = [0 0 0 0 0 0];
