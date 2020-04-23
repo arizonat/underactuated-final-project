@@ -58,10 +58,13 @@ function find_max_rho(f, x_G, u_G, Q, R)
     J★(x̅) = x̅' * S * x̅
     f⁽ᶜˡ⁾(x̅) = f(x̅ + x_G, -K * (x̅ + x_G))
     f̂⁽ᶜˡ⁾(x̅) =
-        jacobian(f⁽ᶜˡ⁾, x_G) * x̅ .+
+        jacobian(f⁽ᶜˡ⁾, zero(x_G)) * x̅ .+
         (1 / 2) *
         x̅' *
-        reshape(vector_hessian(f⁽ᶜˡ⁾, x_G) * x̅, (length(x̅), length(x̅)))
+        reshape(
+            vector_hessian(f⁽ᶜˡ⁾, zero(x_G)) * x̅,
+            (length(x̅), length(x̅)),
+        )
     J̇̂★(x̅) = 2 * x̅' * S * f̂⁽ᶜˡ⁾(x̅)
 
     # model = SOSModel()
