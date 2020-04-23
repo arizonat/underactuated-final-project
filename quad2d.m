@@ -119,3 +119,16 @@ end
 disp('done')
 hold off;
 
+%% Region of attraction analysis (note this requires cvx)
+rho = 100000;
+p = [1;1;1;1;1;1];
+cvx_begin
+    variable Q semidefinite
+    expressions h(6) z(6) m(6)
+    subject to
+        m = polyval(p,z);
+        h = m'*Q*m;
+        2*z'*S*(A*(xg+z)+B*(ug-K*z)) + h*(rho - z'*S*z) <= -eps*z'*z;
+cvx_end
+
+%% Region of attraction analysis using SOSTools
