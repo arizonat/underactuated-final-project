@@ -13,19 +13,19 @@ use_discrete = true;
 m = 0.486;
 r = 0.25;
 iz = 0.00383;
-g = 9.81;
+g = 0.5;
 
 dt = 0.01;
-plot_limit = 2;
+plot_limit = 1;
 final_eps = 0.05;
 max_sim_time = 10;
 
 % goal conditions
-xg = [1 1 0 0 0 0]';
+xg = [0.5 0.5 0 0 0 0]';
 ug = m*g*0.5*[1 1]';
 
 % LQR
-Q = diag([10 10 90 1 1 r/2/pi]);
+Q = diag([10 10 10 1 1 r/2/pi]);
 R = [0.1 0.05;
      0.05 0.1];
 
@@ -85,6 +85,7 @@ qx = xs(1,1);
 qy = xs(2,1);
 
 plot(xs(1,1),xs(2,1),'gx');
+plot(xg(1),xg(2),'rx');
 plot(xs(1,end),xs(2,end),'ro');
 
 p = plot(qx,qy);
@@ -110,7 +111,7 @@ for n=N
     refreshdata
     drawnow
     
-    if norm(x-xg) < final_eps
+    if norm(x-xg) < eps
         break;
     end
 end
@@ -120,6 +121,7 @@ disp('done')
 hold off;
 
 %% Region of attraction analysis (note this requires cvx)
+%{
 rho = 100000;
 p = [1;1;1;1;1;1];
 cvx_begin
@@ -130,5 +132,5 @@ cvx_begin
         h = m'*Q*m;
         2*z'*S*(A*(xg+z)+B*(ug-K*z)) + h*(rho - z'*S*z) <= -eps*z'*z;
 cvx_end
-
+%}
 %% Region of attraction analysis using SOSTools
