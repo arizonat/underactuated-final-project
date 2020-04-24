@@ -1,6 +1,7 @@
 using DynamicPolynomials, SumOfSquares, PolyJuMP, MosekTools
-
+using Plots
 using ForwardDiff: jacobian
+using DifferentialEquations
 using ControlSystems, LinearAlgebra
 
 const g = 9.81
@@ -12,8 +13,6 @@ const dim_u = 2
 const ϵ = 1e-3
 
 const approx_hess_error_msg = "x₀ and x must have the same dimensions"
-
-
 
 function quad2d!(derivatives, state, control, t)
     x, y, θ, ẋ, ẏ, θ̇ = state
@@ -82,19 +81,19 @@ function line_search(ρ_init, f, min_step_size, init_step_size)
                 step_size /= 2
 
             end
-            println(ρ)
         end
     end
     return ρ
 end
 
 function optimize_ρ(ρ, J★, J̇̂★, n)
-    model = SOSModel(with_optimizer(Mosek.Optimizer, QUIET = true))
+    model =
+        SOSModel(optimizer_with_attributes(Mosek.Optimizer, "QUIET" => true))
     @polyvar x̅[1:n]
     #@variable model ρ
     X = monomials(x̅, 0:2)
-    @variable model h Poly(X)
-    @constraint model h >= 0
+    @variable model h SOSPoly(X)
+    @constraint model h in SOSCone()
     @constraint model J̇̂★(x̅) + h * (ρ - J★(x̅)) <= -ϵ * (x̅' * x̅)
     #@objective(model, Max, ρ)
     optimize!(model)
@@ -123,30 +122,36 @@ function find_max_rho(f, x_G, u_G, Q, R)
 
     J̇̂★(x̅) = 2 * x̅' * S * f̂⁽ᶜˡ⁾(x̅)
 
-    ρ_init = 1.0
-    min_step_size = 0.001
+    ρ_init = 0.01
+    min_step_size = 0.0001
     init_step_size = 10.0
 
     ρ_feasible = ρ_feasible_func(J★, J̇̂★, n)
-    max_ρ = line_search(ρ_init, ρ_feasible, min_step_size, init_step_size)
-    model = optimize_ρ(max_ρ, J★, J̇̂★, n)
-    return (max_ρ, model)
+    ρ = line_search(ρ_init, ρ_feasible, min_step_size, init_step_size)
+    return ρ, K, S
 end
 
-const Iᵣ = 1.0
-const mᵣ = 1.0
+const Iᵣ = 10.0
+const mᵣ = 10.0
+const b = 0.01
+const ℓ = 50.0
 
-function pendulum!(dx, x, τ, t)
+pendulum_eos(τ, θ, θ̇) = (τ .- mᵣ .* g .* sin.(θ)) ./ Iᵣ
+
+function pendulum!(dx, x, u, t)
     θ, θ̇ = x
     τ = u[1]
+    θ̈ = pendulum_eos(τ, θ, θ̇)
     dx[1] = θ̇
-    dx[2] = (τ - m * g * sin(θ)) / Iᵣ
+    dx[2] = θ̈
+
 end
 
 function pendulum(x, u, t)
     θ, θ̇ = x
     τ = u[1]
-    [θ̇; (τ - m * g * sin(θ)) / Iᵣ]
+    θ̈ = pendulum_eos(τ, θ, θ̇)
+    [θ̇; θ̈]
 end
 
 pendulum(x, τ) = pendulum(x, τ, 0)
@@ -160,11 +165,97 @@ pendulum(x, τ) = pendulum(x, τ, 0)
 # end
 
 function main()
-    x_G = [pi, 0.0]
+    x_G = [π; 0.0]
     u_G = [0.0]
     Q = Diagonal([1.0, 10.0])
     R = reshape([100.0], (1, 1))
-    max_ρ, model = find_max_rho(pendulum, x_G, u_G, Q, R)
+    ρ, K, S = find_max_rho(pendulum, x_G, u_G, Q, R)
+    f_cl(x) = pendulum(x, -K * (x - x_G))
+
+    tmin = -pi
+    tmax = 3 * pi
+    tdmin = -4.0
+    tdmax = 4.0
+
+    dt = 0.2
+    dtd = 0.8
+    dt_d = 0.05
+    dtd_d = 0.05
+
+    θ = collect(tmin:dt:tmax)
+    θ̇ = collect(tdmin:dtd:tdmax)
+
+    θd = collect(tmin:dt_d:tmax)
+    θ̇d = collect(tdmin:dtd_d:tdmax)
+
+    grid_θ = [i for i in θ, j in θ̇]
+    grid_θ̇ = [j for i in θ, j in θ̇]
+    grid_θ̈ = [
+        f_cl([grid_θ[i, j]; grid_θ̇[i, j]])[2]
+        for i in 1:length(θ), j in 1:length(θ̇)
+    ]
+    J(x) = ((x - x_G)'*S*(x - x_G))[1]
+    grid_J = [J([i; j]) for i in θd, j in θ̇d]
+    norm_grid = sqrt.(grid_θ̇ .^ 2 + grid_θ̈ .^ 2) * 10
+
+    θlims = (minimum(θ), maximum(θ))
+    θ̇lims = (minimum(θ̇), maximum(θ̇))
+    theme(:juno)
+    p = contour(
+        θd,
+        θ̇d,
+        vec(grid_J),
+        fill = false,
+        xlims = θlims,
+        ylims = θ̇lims,
+    )
+    if ρ != -1
+        contour!(
+            p,
+            θd,
+            θ̇d,
+            vec(grid_J),
+            fill = true,
+            levels = [0, ρ, maximum(grid_J)],
+            xlims = θlims,
+            ylims = θ̇lims,
+        )
+    end
+    contour!(
+        p,
+        θd,
+        θ̇d,
+        vec(grid_J),
+        fill = false,
+        xlims = θlims,
+        ylims = θ̇lims,
+    )
+
+    cl_pendulum!(dx, x, p, t) = pendulum!(dx, x, -K * (x - x_G), t)
+    for (θ₀, θ̇₀) in zip(vec(grid_θ), vec(grid_θ̇))
+        u0 = [θ₀; θ̇₀]
+        tspan = (0.0, 10.0)
+        prob = ODEProblem(cl_pendulum!, u0, tspan)
+        sol = DifferentialEquations.solve(prob)
+        plot!(
+            p,
+            sol,
+            plotdensity = 10000,
+            vars = (1, 2),
+            legend = false,
+            xlims = θlims,
+            ylims = θ̇lims,
+        )
+    end
+    # quiver!(p,
+    #     vec(grid_θ),
+    #     vec(grid_θ̇),
+    #     quiver = (vec(grid_θ̇ ./ norm_grid), vec(grid_θ̈ ./ norm_grid)),
+    #     xlims = θlims,
+    #     ylims = θ̇lims,
+    # )
+    display(p)
+    println(ρ)
 end
 
 function test_sos_solver()
