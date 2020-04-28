@@ -4,6 +4,8 @@ using ForwardDiff: jacobian
 using DifferentialEquations
 using ControlSystems, LinearAlgebra
 
+include("linearization.jl")
+
 const g = 9.81
 const m = 0.486
 const r = 0.25
@@ -12,7 +14,6 @@ const dim_x = 6
 const dim_u = 2
 const ϵ = 1e-3
 
-const approx_hess_error_msg = "x₀ and x must have the same dimensions"
 
 function quad2d!(derivatives, state, control, t)
     x, y, θ, ẋ, ẏ, θ̇ = state
