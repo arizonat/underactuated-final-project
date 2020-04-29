@@ -14,6 +14,12 @@ function hessian(f, x₀::AbstractArray, x::AbstractArray)
     return (1 / 2) * reshape(vector_hessian(f, x₀) * x, (n, n))'
 end
 
+function do_lqr(A, B, Q, R)
+    S = care(A, B, Q, R)
+    K = R \ B' * S
+    return K, S
+end
+
 
 function linearize(f, x_G, u_G)
     A = jacobian(x -> f(x, u_G), x_G)
@@ -23,8 +29,8 @@ end
 
 # make_linear_system(f, x_G, u_G) = LinearSystem(linearize(f, x_G, u_G)...)
 
-to_col(x::AbstractVector{T}) where {T} = reshape(x, (length(x), 1))
-to_row(x::AbstractVector{T}) where {T} = reshape(x, (1, length(x)))
+# to_col(x::AbstractVector{T}) where {T} = reshape(x, (length(x), 1))
+# to_row(x::AbstractVector{T}) where {T} = reshape(x, (1, length(x)))
 
 #
 # struct LinearSystem{T,M<:AbstractMatrix{T}}
