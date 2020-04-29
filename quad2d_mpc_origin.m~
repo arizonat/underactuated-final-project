@@ -12,12 +12,12 @@ r = 0.25;
 iz = 0.00383;
 g = 9.81;
 
-dt = 0.1;
+dt = 0.01;
 plot_limit = 1;
 final_eps = 0.05;
 max_sim_time = 4;
 
-N = 100; % time-horizon in dt units (N*dt = horizon in seconds)
+N = 10; % time-horizon in dt units (N*dt = horizon in seconds)
 
 % nominal condition
 x0 = zeros(6,1);
@@ -61,26 +61,27 @@ for t = ts
     A = A_func(xt(1),xt(2),xt(3),xt(4),xt(5),xt(6),ut(1),ut(2));
     B = B_func(xt(1),xt(2),xt(3),xt(4),xt(5),xt(6),ut(1),ut(2));
     % discretize my dynamics (one-step Euler approx?)
-    %A = (eye(6) + A*dt);
-    %B = B*dt;
-    
+    A = (eye(6) + A*dt);
+    B = B*dt;
     cvx_begin quiet
-        variable u(2)
-        expressions J x(6,N) Ji(N)
+        variable u(2,N)
+        expressions J x(6,N)
         minimize J
         subject to
-            Ji(1) = x(:,1)'*Q*x(:,1);
             for i = 2:N
-                x(:,i) = A*x(:,i-1) + B*u;
-                Ji(i) = x(:,i)'*Q*x(:,i)+u'*R*u;
+                x(:,i) = A*x(:,i-1) + B*u(:,i-1);
+            end
+            Ji = [];
+            for i = 1:N
+                Ji(i) = x(:,i)'*Q*x(:,i)+u(:,i)'*R*u(:,i);
             end
             J = sum(Ji);
             x(:,1) = xt;
     cvx_end
     u
-    xt = xt + f_func(xt,u)*dt;
+    xt = xt + f_func(xt,u(:,1))*dt;
     x_traj = [x_traj xt];
-    u_traj = [u_traj u];
+    u_traj = [u_traj u(:,1)];
 end
 disp('done');
 
@@ -89,6 +90,8 @@ figure;
 hold on;
 xlim([-plot_limit plot_limit]);
 ylim([-plot_limit plot_limit]);
+
+disp('huh')
 
 qx = x_traj(1,1);
 qy = x_traj(2,1);
