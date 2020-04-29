@@ -31,19 +31,13 @@ R = [0.1 0.05;
 
 %% Dynamics
 syms x1 x2 x3 x4 x5 x6 u1 u2
-
-f = [x4;
-     x5;
-     x6;
-     -(1/m)*(u1+u2)*sin(x3);
-     (1/m)*(u1+u2)*cos(x3)-m*g;
-     (1/iz)*r*(u1-u2)];
  
 f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-m*g; (1/iz)*r*(u(1)-u(2))];
- 
+f_sym = f_func([x1 x2 x3 x4 x5 x6],[u1 u2]);
+
 %% Linearize
-A_sym = jacobian(f,[x1 x2 x3 x4 x5 x6]);
-B_sym = jacobian(f,[u1 u2]);
+A_sym = jacobian(f_sym,[x1 x2 x3 x4 x5 x6]);
+B_sym = jacobian(f_sym,[u1 u2]);
 
 A = eval(subs(A_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0; u0]'));
 B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0; u0]'));
@@ -56,6 +50,7 @@ B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0; u0]'));
 ts = 0:dt:max_sim_time;
 x = rand(6,1);
 x(1:2) = x(1:2) * 2*plot_limit - plot_limit;
+x = [0 0 pi/2 0 0 0]';
 xs = [x];
 
 for t = ts
@@ -75,8 +70,6 @@ hold on;
 N = 1:size(ts,2);
 xlim([-plot_limit plot_limit]);
 ylim([-plot_limit plot_limit]);
-
-disp('huh')
 
 qx = xs(1,1);
 qy = xs(2,1);

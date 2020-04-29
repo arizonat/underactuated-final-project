@@ -60,8 +60,9 @@ for t = ts
     A = A_func(xt(1),xt(2),xt(3),xt(4),xt(5),xt(6),ut(1),ut(2));
     B = B_func(xt(1),xt(2),xt(3),xt(4),xt(5),xt(6),ut(1),ut(2));
     % discretize my dynamics (one-step Euler approx?)
-    A = (eye(6) + A*dt);
-    B = B*dt;
+    %A = (eye(6) + A*dt);
+    %B = B*dt;
+    
     cvx_begin quiet
         variable u(2,N)
         expressions J x(6,N)
@@ -92,8 +93,6 @@ hold on;
 N = 1:size(ts,2);
 xlim([-plot_limit plot_limit]);
 ylim([-plot_limit plot_limit]);
-
-disp('huh')
 
 qx = x_traj(1,1);
 qy = x_traj(2,1);
