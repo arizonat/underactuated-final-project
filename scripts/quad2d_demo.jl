@@ -1,5 +1,6 @@
 using UnderactuatedFinalProject
 using LinearAlgebra: Diagonal
+using DifferentialEquations
 using Plots
 
 # function main()
@@ -17,11 +18,11 @@ function quad2d_mpc()
     Δt = 0.75 # Timespan of single MPC optimization
 
     Q = Diagonal([10, 10, 90, 1, 1, 0.25 / (2 * pi)])
-    R = [10.0 0.05; 0.05 10.0]
+    R = [0.1 0.05; 0.05 0.1]
     ℓ(x, u) = x' * Q * x + u' * R * u
 
 
-    x₀ = [0.0; 2.0; π; 0.0; 0.0; 0.0]
+    x₀ = [1.0; 1.0; 0.25; 0.0; 0.0; 0.0]
 
     xG = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
     uG = [2.38383; 2.38383]
@@ -43,5 +44,55 @@ function quad2d_mpc()
     gif(anim, "quad2D_mpc.gif", fps = 60)
 end
 
+function quad2d_lqr()
+    N = 50 * 100 # number of iterations per MPC optimization; dt = Δt / N
+    dt = 0.75 / 100 # Timespan of single MPC optimization
+    t = cumsum(repeat([dt], N))
+    tspan = (minimum(t), maximum(t))
 
-quad2d_mpc()
+    Q = Diagonal([10, 10, 0.001, 1, 1, 0.25 / (2 * π)])
+    R = [10.0 0.05; 0.05 10.0]
+
+
+
+    x₀ = [-3.0; 5.0; π; 0.0; 0.0; 0.0]
+
+    xG = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
+    uG = [2.38383; 2.38383]
+
+    A, B = linearize(quad2d, xG, uG)
+    K, ~ = do_lqr(A, B, Q, R)
+
+    control(x, t) = -K * x
+
+    prob = ODEProblem(quad2d!, x₀, tspan, control)
+    sol = solve(prob, saveat = t)
+
+    xs = hcat(sol.u...)
+
+
+    plt = plot_quad2D_frame(xs, Int(round(size(xs)[2] / 2)))
+    anim = plot_quad2D_animation(xs[:, 1:600])
+    gif(anim, "quad2D_mpc.gif", fps = 120)
+end
+
+function plot_quad2d(xs)
+    xmin = -2.0
+    xmax = 2.0
+    ymin = -2.0
+    ymax = 2.0
+    x, y, θ, ~, ~, ~ = xs
+    plot([x], [y])
+
+end
+
+function quad2d_shape(x, y, θ)
+    dx = 0.25
+    dy = 0.5
+    ul = [-dx, dy]
+    ur = [dx, dy]
+    ll = (-dx, -dy)
+    lr = (dx, -dy)
+end
+
+quad2d_lqr()

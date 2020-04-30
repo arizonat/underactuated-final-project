@@ -8,13 +8,13 @@ const dim_u = 2
 
 function quad2d!(derivatives, state, control, t)
     x, y, θ, ẋ, ẏ, θ̇ = state
-    u₁, u₂ = control
-    dz[1] = ẋ
-    dz[2] = ẏ
-    dz[3] = θ̇
-    dz[4] = -(u₁ + u₂) * sin(θ) / μ
-    dz[5] = (u₁ + u₂) * cos(θ) / μ - g
-    dz[6] = (u₁ - u₂) * r / I_z
+    u₁, u₂ = control(state, t)
+    derivatives[1] = ẋ
+    derivatives[2] = ẏ
+    derivatives[3] = θ̇
+    derivatives[4] = -(u₁ + u₂) * sin(θ) / μ
+    derivatives[5] = (u₁ + u₂) * cos(θ) / μ - g
+    derivatives[6] = (u₁ - u₂) * r / I_z
 end
 
 function quad2d(state, control, t)
@@ -64,7 +64,7 @@ function quad2D_shape(x, y, θ)
         -dx -dy
     ]
 
-    pts *= [cos(θ) sin(θ); -sin(θ) cos(θ)]
+    pts = pts * [cos(θ) sin(θ); -sin(θ) cos(θ)]
 
     pts .+= [x y]
 
