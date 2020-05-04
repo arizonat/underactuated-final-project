@@ -76,23 +76,4 @@ function quad2d_lqr()
     gif(anim, "quad2D_mpc.gif", fps = 120)
 end
 
-function plot_quad2d(xs)
-    xmin = -2.0
-    xmax = 2.0
-    ymin = -2.0
-    ymax = 2.0
-    x, y, θ, ~, ~, ~ = xs
-    plot([x], [y])
-
-end
-
-function quad2d_shape(x, y, θ)
-    dx = 0.25
-    dy = 0.5
-    ul = [-dx, dy]
-    ur = [dx, dy]
-    ll = (-dx, -dy)
-    lr = (dx, -dy)
-end
-
 quad2d_lqr()
