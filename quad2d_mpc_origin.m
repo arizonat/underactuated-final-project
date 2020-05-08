@@ -17,14 +17,14 @@ plot_limit = 1;
 final_eps = 0.05;
 max_sim_time = 4;
 
-N = 100; % time-horizon in dt units (N*dt = horizon in seconds)
+N = 10; % time-horizon in dt units (N*dt = horizon in seconds)
 
 % nominal condition
 x0 = zeros(6,1);
 u0 = m*g*0.5*[1 1]';
 
 % initial condition
-xs = [1;1;0;0;0;0];
+xs = [1;1;pi;0;0;0];
 us = u0;
 
 % LQR
@@ -56,31 +56,36 @@ xt = xs;
 ut = us;
 ts = 0:dt:max_sim_time;
 
+A = A_func(x0(1),x0(2),x0(3),x0(4),x0(5),x0(6),u0(1),u0(2));
+B = B_func(x0(1),x0(2),x0(3),x0(4),x0(5),x0(6),u0(1),u0(2));
+    
 for t = ts
-    t
-    A = A_func(xt(1),xt(2),xt(3),xt(4),xt(5),xt(6),ut(1),ut(2));
-    B = B_func(xt(1),xt(2),xt(3),xt(4),xt(5),xt(6),ut(1),ut(2));
+
     % discretize my dynamics (one-step Euler approx?)
     %A = (eye(6) + A*dt);
     %B = B*dt;
     
     cvx_begin quiet
-        variable u(2)
-        expressions J x(6,N) Ji(N)
-        minimize J
+        variables u(2,N) x(6,N)
+        expressions Ji(N)
+        minimize sum(Ji)
         subject to
-            Ji(1) = x(:,1)'*Q*x(:,1);
-            for i = 2:N
-                x(:,i) = A*x(:,i-1) + B*u;
-                Ji(i) = x(:,i)'*Q*x(:,i)+u'*R*u;
+            % Cost function
+            for i = 1:N-1
+                Ji(i) = x(:,i)'*Q*x(:,i)+u(:,i)'*R*u(:,i);
             end
-            J = sum(Ji);
-            x(:,1) = xt;
+            Ji(N) = x(:,N)'*Q*x(:,N);
+            
+            % Dynamics constraint
+            x(:,1:end) == A*[xt x(:,1:end-1)] + B*u(:,1:end);
     cvx_end
-    u
-    xt = xt + f_func(xt,u)*dt;
+    sum(Ji)
+    %u
+    %x
+    xt
+    xt = xt + f_func(xt,u(:,1))*dt;
     x_traj = [x_traj xt];
-    u_traj = [u_traj u];
+    u_traj = [u_traj u(:,1)];
 end
 disp('done');
 
