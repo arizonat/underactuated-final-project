@@ -35,7 +35,7 @@ R = [0.1 0.05;
 %% Dynamics
 syms x1 x2 x3 x4 x5 x6 u1 u2
 
-f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-m*g; (1/iz)*r*(u(1)-u(2))];
+f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-g; (1/iz)*r*(u(1)-u(2))];
 f_sym = f_func([x1 x2 x3 x4 x5 x6],[u1 u2]);
 
 %% Linearize
