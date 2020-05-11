@@ -41,7 +41,7 @@ end
 ρ_feasible_func(opt, a...) = ρ -> termination_status(opt(ρ, a...)) == FEASIBLE
 
 function find_max_rho(
-    f,
+    f̂,
     x_G,
     u_G,
     Q,
@@ -53,16 +53,16 @@ function find_max_rho(
 )
     n = length(x_G)
 
-    A, B = linearize(f, x_G, u_G)
+    A, B = linearize(f̂, x_G, u_G)
     K, S = do_lqr(A, B, Q, R)
 
     J★(x̅) = x̅' * S * x̅
-    f⁽ᶜˡ⁾(x̅) = f(x̅ + x_G, -K * (x̅ + x_G))
+    f⁽ᶜˡ⁾(x̅) = f̂(x̅ + x_G, -K * (x̅ + x_G))
 
-    𝕆 = zero(x_G)
-    f̂⁽ᶜˡ⁾(x̅) = (jacobian(f⁽ᶜˡ⁾, 𝕆) .+ hessian(f⁽ᶜˡ⁾, 𝕆, x̅)) * x̅
+    #𝕆 = zero(x_G)
+    #f̂⁽ᶜˡ⁾(x̅) = (jacobian(f⁽ᶜˡ⁾, 𝕆) .+ hessian(f⁽ᶜˡ⁾, 𝕆, x̅)) * x̅
 
-    J̇̂★(x̅) = 2 * x̅' * S * f̂⁽ᶜˡ⁾(x̅)
+    J̇̂★(x̅) = 2 * x̅' * S * f⁽ᶜˡ⁾(x̅)
 
     ρ_feasible = ρ_feasible_func(optimize_ρ, J★, J̇̂★, n, ϵ)
     ρ = line_search(ρ_init, ρ_feasible, Δmin, Δ₀)

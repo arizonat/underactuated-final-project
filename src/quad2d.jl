@@ -32,6 +32,32 @@ end
 
 quad2d(state, control) = quad2d(state, control, 0)
 
+function quad2d_approx!(derivatives, state, control, t)
+    x, y, θ, ẋ, ẏ, θ̇ = state
+    u₁, u₂ = control(state, t)
+    derivatives[1] = ẋ
+    derivatives[2] = ẏ
+    derivatives[3] = θ̇
+    derivatives[4] = -(μ * g + u₁ + u₂) * (θ - (1 // 6) * θ .^ 3) / μ
+    derivatives[5] = (μ * g + u₁ + u₂) * (1 - (1 // 2) * θ .^ 2) / μ - g
+    derivatives[6] = (u₁ - u₂) * r / I_z
+end
+
+function quad2d_approx(state, control, t)
+    (x, y, θ, ẋ, ẏ, θ̇) = state
+    (u₁, u₂) = control
+    return [
+        ẋ
+        ẏ
+        θ̇
+        -(μ * g + u₁ + u₂) * (θ - (1 // 6) * θ .^ 3) / μ
+        (μ * g + u₁ + u₂) * (1 - (1 // 2) * θ .^ 2) / μ - g
+        (u₁ - u₂) * r / I_z
+    ]
+end
+
+quad2d_approx(state, control) = quad2d(state, control, 0)
+
 const prop_r = 0.1
 const dx = r
 const dy = 0.01

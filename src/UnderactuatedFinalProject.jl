@@ -8,7 +8,12 @@ using Plots
 
 export find_max_rho
 export mpc, linear_mpc, nonlinear_mpc_optimal_control
-export quad2d, quad2d!, plot_quad2D_frame, plot_quad2D_animation
+export quad2d,
+    quad2d!,
+    quad2d_approx,
+    quad2d_approx!,
+    plot_quad2D_frame,
+    plot_quad2D_animation
 export do_lqr, linearize
 
 include("linearization.jl")
