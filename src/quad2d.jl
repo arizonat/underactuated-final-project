@@ -56,7 +56,7 @@ function quad2d_approx(state, control, t)
     ]
 end
 
-quad2d_approx(state, control) = quad2d(state, control, 0)
+quad2d_approx(state, control) = quad2d_approx(state, control, 0)
 
 const prop_r = 0.1
 const dx = r
