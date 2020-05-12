@@ -35,6 +35,39 @@ function mpc(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt)
     return Δxᵢ, Δuᵢ, m
 end
 
+function linear_mpc_constrained(A, B, Q, R, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, a)
+    X = size(xᵢʳᵉᶠ)[1]
+    U = size(uᵢʳᵉᶠ)[1]
+    m = Model(optimizer_with_attributes(Mosek.Optimizer, "QUIET" => true))
+    @variable m Δxᵢ[1:X, 1:N+1]
+    @variable m Δuᵢ[1:U, 1:N]
+
+    for n in 1:X
+        @constraint(m, Δxᵢ[n, 1] == x̂ᵢ[n] - xᵢʳᵉᶠ[n, 1])
+    end
+
+    for n in 1:N
+        for u in 1:U
+            @constraint(m, Δuᵢ[u,n] <= a + uᵢʳᵉᶠ[u,n])
+            @constraint(m, Δuᵢ[u,n] >= -a + uᵢʳᵉᶠ[u,n])
+        end
+    end
+
+    rᵢ = A * xᵢʳᵉᶠ[:, 1:N] + B * uᵢʳᵉᶠ - xᵢʳᵉᶠ[:, 2:N+1]
+    Δxᵢₖ₊₁ = A * Δxᵢ[:, 1:N] + B * Δuᵢ - rᵢ
+    for k in 1:N
+        for n in 1:X
+            @constraint(m, Δxᵢ[n, k+1] == Δxᵢₖ₊₁[n, k])
+        end
+    end
+    cost = sum(
+        Δxᵢ[:, k]' * Q * Δxᵢ[:, k] + Δuᵢ[:, k]' * R * Δuᵢ[:, k] for k in 1:N
+    )
+    @objective(m, Min, cost)
+    optimize!(m)
+    return Δxᵢ, Δuᵢ, m
+end
+
 function linear_mpc(A, B, Q, R, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N)
     X = size(xᵢʳᵉᶠ)[1]
     U = size(uᵢʳᵉᶠ)[1]
@@ -42,9 +75,15 @@ function linear_mpc(A, B, Q, R, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N)
     @variable m Δxᵢ[1:X, 1:N+1]
     @variable m Δuᵢ[1:U, 1:N]
 
-
     for n in 1:X
         @constraint(m, Δxᵢ[n, 1] == x̂ᵢ[n] - xᵢʳᵉᶠ[n, 1])
+    end
+
+    for n in 1:N
+        for u in 1:U
+            @constraint(m, Δuᵢ[u,n] <= a + uᵢʳᵉᶠ[u,n])
+            @constraint(m, Δuᵢ[u,n] >= -a + uᵢʳᵉᶠ[u,n])
+        end
     end
 
     rᵢ = A * xᵢʳᵉᶠ[:, 1:N] + B * uᵢʳᵉᶠ - xᵢʳᵉᶠ[:, 2:N+1]

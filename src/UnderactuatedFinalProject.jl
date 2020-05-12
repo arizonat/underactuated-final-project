@@ -12,6 +12,8 @@ export quad2d,
     quad2d!,
     quad2d_approx,
     quad2d_approx!,
+    quad2d_shifted,
+    quad2d_shifted!,
     plot_quad2D_frame,
     plot_quad2D_animation
 export do_lqr, linearize
