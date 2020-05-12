@@ -10,12 +10,48 @@
 function mpc(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt)
     X = size(xᵢʳᵉᶠ)[1]
     U = size(uᵢʳᵉᶠ)[1]
+    m = Model(optimizer_with_attributes(Mosek.Optimizer, "QUIET" => true))
+
+    @variable m Δxᵢ[1:X, 1:N+1] # States
+    @variable m Δuᵢ[1:U, 1:N] # Control efforts
+
+    cost = sum(ℓ(Δxᵢ[:, k], Δuᵢ[:, k]) for k in 1:N)
+    for n in 1:X
+        @constraint(m, Δxᵢ[n, 1] == x̂ᵢ[n] - xᵢʳᵉᶠ[n, 1]) # Enforces start point
+    end
+    for k in 1:N
+        Aᵢₖ, Bᵢₖ = linearize(f, xᵢʳᵉᶠ[:, k], uᵢʳᵉᶠ[:, k])
+        A = I(X) + Aᵢₖ * dt
+        B = Bᵢₖ * dt
+        rᵢ = A * xᵢʳᵉᶠ[:, k] + B * uᵢʳᵉᶠ[:, k] - xᵢʳᵉᶠ[:, k+1] # Error from unphysical trajectories
+        Δxᵢₖ₊₁ = A * Δxᵢ[:, k] + B * Δuᵢ[:, k] - rᵢ # Dynamics
+        for n in 1:X
+            @constraint(m, Δxᵢ[n, k+1] == Δxᵢₖ₊₁[n]) # Enforces dynamics
+        end
+    end
+    @objective(m, Min, cost)
+    optimize!(m)
+    return Δxᵢ, Δuᵢ, m
+end
+
+function mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat)
+    X = size(xᵢʳᵉᶠ)[1]
+    U = size(uᵢʳᵉᶠ)[1]
 
     m = Model(optimizer_with_attributes(Mosek.Optimizer, "QUIET" => true))
 
     @variable m Δxᵢ[1:X, 1:N+1] # States
     @variable m Δuᵢ[1:U, 1:N] # Control efforts
 
+    # Motor saturation constraints
+    if sat != 0
+        for n in 1:N
+            for u in 1:U
+                @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] <= sat)
+                @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] >= -sat )
+            end
+        end
+    end
     cost = sum(ℓ(Δxᵢ[:, k], Δuᵢ[:, k]) for k in 1:N)
     for n in 1:X
         @constraint(m, Δxᵢ[n, 1] == x̂ᵢ[n] - xᵢʳᵉᶠ[n, 1]) # Enforces start point
@@ -111,6 +147,7 @@ function nonlinear_mpc_optimal_control(
     reject_ratio = 0.8,
     N = 100,
     Δt = 0.75,
+    sat = 0
 )
     num_iters = 50 # Number of MPC optimizations to run
     reject_ratio = 0.8 # Fraction of trajectory to throw out
@@ -129,7 +166,7 @@ function nonlinear_mpc_optimal_control(
     rej = Int(reject_ratio * N)
     for i in 1:num_iters
         x̂ᵢ = (i == 1) ? x₀ : xs[:, end]
-        x, u, m = mpc(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt)
+        x, u, m = mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat)
         xs = hcat(xs, value.(x)[:, 1:end-rej] + xᵢʳᵉᶠ[:, 1:end-rej])
         us = hcat(us, value.(u) + uᵢʳᵉᶠ)
     end
