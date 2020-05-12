@@ -4,6 +4,9 @@ using DynamicPolynomials, SumOfSquares, JuMP, PolyJuMP, MosekTools
 using ForwardDiff: jacobian
 using ControlSystems, LinearAlgebra
 using Plots
+using DifferentialEquations
+using ProgressMeter
+
 
 
 export find_max_rho

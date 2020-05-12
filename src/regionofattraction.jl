@@ -1,7 +1,3 @@
-using DynamicPolynomials, SumOfSquares, PolyJuMP, MosekTools
-using ForwardDiff: jacobian
-using DifferentialEquations
-using ControlSystems, LinearAlgebra
 
 const FEASIBLE = MOI.TerminationStatusCode(1)
 
@@ -11,6 +7,7 @@ function line_search(ρ_init, f, min_step_size, init_step_size)
     if !(f(ρ))
         ρ = -1
     else
+        prog = ProgressMeter.ProgressThresh(min_step_size, "Minimizing: ")
         while step_size > min_step_size
             if f(ρ)
                 ρ += step_size
@@ -19,17 +16,18 @@ function line_search(ρ_init, f, min_step_size, init_step_size)
                 step_size /= 2
 
             end
+            ProgressMeter.update!(prog, step_size)
         end
     end
     return ρ
 end
 
-function optimize_ρ(ρ, J★, J̇̂★, n, ϵ)
+function optimize_ρ(ρ, J★, J̇̂★, n, ϵ; polynomial_order = 2)
     model =
         SOSModel(optimizer_with_attributes(Mosek.Optimizer, "QUIET" => true))
     @polyvar x̅[1:n]
     #@variable model ρ
-    X = monomials(x̅, 0:2)
+    X = monomials(x̅, 0:polynomial_order)
     @variable model h SOSPoly(X)
     @constraint model h in SOSCone()
     @constraint model J̇̂★(x̅) + h * (ρ - J★(x̅)) <= -ϵ * (x̅' * x̅)
