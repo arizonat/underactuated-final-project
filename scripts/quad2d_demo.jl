@@ -45,11 +45,11 @@ function quad2d_mpc()
         reject_ratio,
         N,
         Δt,
-        5
+        5,
     )
 
     plt = plot_quad2D_frame(xs, Int(round(size(xs)[2] / 2)))
-    anim = plot_quad2D_animation(xs[:,1:600])
+    anim = plot_quad2D_animation(xs[:, 1:600])
     gif(anim, "quad2D_mpc.gif", fps = 120)
     return t, xs, us
 end
@@ -70,7 +70,7 @@ function quad2d_lqr()
     xG = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
     #uG = [2.38383; 2.38383]
     #uG = μ*g/2.0 * [1; 1]
-    uG = [0;0]
+    uG = [0; 0]
 
     A, B = linearize(quad2d_shifted, xG, uG)
     K, ~ = do_lqr(A, B, Q, R)
@@ -81,7 +81,7 @@ function quad2d_lqr()
     sol = solve(prob, saveat = t)
 
     xs = hcat(sol.u...)
-    us = -K*xs
+    us = -K * xs
 
     plt = plot_quad2D_frame(xs, Int(round(size(xs)[2] / 2)))
     anim = plot_quad2D_animation(xs[:, 1:600])
@@ -98,7 +98,7 @@ function quad2d_lqr(Q, R, x₀)
     xG = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
     #uG = [2.38383; 2.38383]
     #uG = μ*g/2.0 * [1; 1]
-    uG = [0;0]
+    uG = [0; 0]
 
     A, B = linearize(quad2d_shifted, xG, uG)
     K, ~ = do_lqr(A, B, Q, R)
@@ -109,7 +109,7 @@ function quad2d_lqr(Q, R, x₀)
     sol = solve(prob, saveat = t)
 
     xs = hcat(sol.u...)
-    us = -K*xs.+μ*g/2.0 # since we're using shifted dynamics
+    us = -K * xs .+ μ * g / 2.0 # since we're using shifted dynamics
     return t, xs, us
 end
 
@@ -134,7 +134,7 @@ function quad2d_mpc(Q, R, x₀, sat)
         reject_ratio,
         N,
         Δt,
-        sat
+        sat,
     )
 
     return t, xs, us
@@ -143,22 +143,22 @@ end
 function check_goal_reached(xG, xs)
     # todo: actually try to see if it's stably there?
     ϵ = 3e-2
-    d = sqrt.(sum((xs .- xG).^2, dims=1))
-    inds = findall(x->x<=ϵ, d)
+    d = sqrt.(sum((xs .- xG) .^ 2, dims = 1))
+    inds = findall(x -> x <= ϵ, d)
     if isempty(inds)
         return false, 0
     end
     return true, inds[1][2]
 end
 
-function sample_quad2d_ROA_surface(S, ρ, n, zero_vels=false)
+function sample_quad2d_ROA_surface(S, ρ, n, zero_vels = false)
     # not necessarily uniform, especially given theta, but probably good enough
-    x = rand(6,n)
+    x = rand(6, n)
     if zero_vels
-        x[4:6,:] .= 0
+        x[4:6, :] .= 0
     end
-    a = sqrt.(ρ./diag((x'*S*x)))
-    return a'.*x
+    a = sqrt.(ρ ./ diag((x' * S * x)))
+    return a' .* x
 end
 
 function compare_quad2d_lqr_mpc()
@@ -171,17 +171,17 @@ function compare_quad2d_lqr_mpc()
     R = [0.1 0.05; 0.05 0.1]
 
     # Setup starting points
-    ρ=0.7805688476562498 # TODO: this should be computed live
+    ρ = 0.7805688476562498 * 200 # TODO: this should be computed live
     xG = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
-    uG = [0;0]
+    uG = [0; 0]
     A, B = linearize(quad2d_shifted, xG, uG)
     K, S = do_lqr(A, B, Q, R)
-    x₀s = sample_quad2d_ROA_surface(S,ρ,nₓ,true)
+    x₀s = sample_quad2d_ROA_surface(S, ρ, nₓ, true)
     #x₀s .*= 1.1 # step slightly outside the RoA
 
-    for i=1:nₓ
-        x₀ = x₀s[:,i]
-        println("trying with: ",x₀)
+    for i in 1:nₓ
+        x₀ = x₀s[:, i]
+        println("trying with: ", x₀)
         # try each controller
         t_lqr, xs_lqr, us_lqr = quad2d_lqr(Q, R, x₀)
         t_mpc, xs_mpc, us_mpc = quad2d_mpc(Q, R, x₀, 0)

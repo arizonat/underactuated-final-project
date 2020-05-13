@@ -47,8 +47,8 @@ function mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat)
     if sat != 0
         for n in 1:N
             for u in 1:U
-                @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] <= sat)
-                @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] >= -sat )
+                @constraint(m, Δuᵢ[u, n] + uᵢʳᵉᶠ[u, n] <= sat)
+                @constraint(m, Δuᵢ[u, n] + uᵢʳᵉᶠ[u, n] >= -sat)
             end
         end
     end
@@ -84,8 +84,8 @@ function linear_mpc_constrained(A, B, Q, R, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, 
 
     for n in 1:N
         for u in 1:U
-            @constraint(m, Δuᵢ[u,n] <= a + uᵢʳᵉᶠ[u,n])
-            @constraint(m, Δuᵢ[u,n] >= -a + uᵢʳᵉᶠ[u,n])
+            @constraint(m, Δuᵢ[u, n] <= a + uᵢʳᵉᶠ[u, n])
+            @constraint(m, Δuᵢ[u, n] >= -a + uᵢʳᵉᶠ[u, n])
         end
     end
 
@@ -117,8 +117,8 @@ function linear_mpc(A, B, Q, R, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N)
 
     for n in 1:N
         for u in 1:U
-            @constraint(m, Δuᵢ[u,n] <= a + uᵢʳᵉᶠ[u,n])
-            @constraint(m, Δuᵢ[u,n] >= -a + uᵢʳᵉᶠ[u,n])
+            @constraint(m, Δuᵢ[u, n] <= a + uᵢʳᵉᶠ[u, n])
+            @constraint(m, Δuᵢ[u, n] >= -a + uᵢʳᵉᶠ[u, n])
         end
     end
 
@@ -147,7 +147,7 @@ function nonlinear_mpc_optimal_control(
     reject_ratio = 0.8,
     N = 100,
     Δt = 0.75,
-    sat = 0
+    sat = 0,
 )
     num_iters = 50 # Number of MPC optimizations to run
     reject_ratio = 0.8 # Fraction of trajectory to throw out

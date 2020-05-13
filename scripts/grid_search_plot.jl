@@ -13,7 +13,7 @@ function check_goal_reached(xG, xs)
 end
 
 function main()
-
+    gr()
     xG = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
     #uG = [2.38383; 2.38383]
     #uG = μ*g/2.0 * [1; 1]
@@ -25,10 +25,10 @@ function main()
     K, S = do_lqr(A, B, Q, R)
 
     control(x, t) = -K * x
-    xs = -10:0.2:10
-    ys = -10:0.2:10
+    xs = -10:0.01:10
+    ys = -10:0.01:10
     u0s = [[x; y; 0.0; 0.0; 0.0; 0.0] for x in xs for y in ys]
-    tspan = (0.0, 100.0)
+    tspan = (0.0, 10.0)
     results = Float64[]
     for u0 in u0s
         prob = ODEProblem(quad2d_shifted!, u0, tspan, control)
@@ -36,19 +36,28 @@ function main()
         push!(results, check_goal_reached(xG, sol)[1] * 1.0)
     end
     rs = reshape(results, (length(xs), length(ys)))
-    pl = contour(xs, ys, rs, fill = true)
-    display(pl)
-    savefig("pl1.png")
-    ρ = 0.7805688476562498
+    ρ = 0.7805688476562498 # TODO: this should be computed live
+    pl = contourf(
+        xs,
+        ys,
+        rs,
+        seriescolor = :Accent_4,
+        colorbar = false,
+        levels = [0.0, ρ, 1.0, 1200],
+    )
     V(x, y) = sum([x y] * S[1:2, 1:2] * [x; y])
-    pl = contourf(xs, ys, V, fill = false, levels = [0.0, ρ, maximum(Z)])
+    logV(x, y) = log(V(x, y))
+    contour!(
+        pl,
+        xs,
+        ys,
+        V,
+        seriescolor = :Accent_4,
+        colorbar = false,
+        levels = [0.0, ρ, 1.0, 1200],
+    )
     display(pl)
-    savefig("pl2.png")
-
-    pl = contourf(xs, ys, V, fill = true, levels = [0.0, ρ, maximum(Z)])
-    display(pl)
-    savefig("pl3.png")
-
+    savefig("pl.pdf")
     return xs, ys, rs
 end
 
