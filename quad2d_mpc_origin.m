@@ -22,6 +22,7 @@ N = 10; % time-horizon in dt units (N*dt = horizon in seconds)
 % nominal condition
 x0 = zeros(6,1);
 u0 = m*g*0.5*[1 1]';
+u0 = [0;0];
 
 % initial condition
 xs = [1;1;pi;0;0;0];
@@ -35,7 +36,8 @@ R = [0.1 0.05;
 %% Dynamics
 syms x1 x2 x3 x4 x5 x6 u1 u2
 
-f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-m*g; (1/iz)*r*(u(1)-u(2))];
+%f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-m*g; (1/iz)*r*(u(1)-u(2))];
+f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2)+m*g)*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3)); (1/iz)*r*(u(1)-u(2))];
 f_sym = f_func([x1 x2 x3 x4 x5 x6],[u1 u2]);
 
 
@@ -82,7 +84,9 @@ for t = ts
     sum(Ji)
     %u
     %x
-    xt
+    %u
+    %xt
+    u(:,1)+m*g*0.5*[1 1]'
     xt = xt + f_func(xt,u(:,1))*dt;
     x_traj = [x_traj xt];
     u_traj = [u_traj u(:,1)];

@@ -5,7 +5,6 @@ const I_z = 0.00383
 const dim_x = 6
 const dim_u = 2
 
-
 function quad2d!(derivatives, state, control, t)
     x, y, θ, ẋ, ẏ, θ̇ = state
     u₁, u₂ = control(state, t)
@@ -31,6 +30,32 @@ function quad2d(state, control, t)
 end
 
 quad2d(state, control) = quad2d(state, control, 0)
+
+function quad2d_shifted!(derivatives, state, control, t)
+    x, y, θ, ẋ, ẏ, θ̇ = state
+    u₁, u₂ = control(state, t)
+    derivatives[1] = ẋ
+    derivatives[2] = ẏ
+    derivatives[3] = θ̇
+    derivatives[4] = -(u₁ + u₂ + μ*g) * sin(θ) / μ
+    derivatives[5] = (u₁ + u₂ + μ*g) * cos(θ) / μ - g
+    derivatives[6] = (u₁ - u₂) * r / I_z
+end
+
+function quad2d_shifted(state, control, t)
+    (x, y, θ, ẋ, ẏ, θ̇) = state
+    (u₁, u₂) = control
+    return [
+        ẋ
+        ẏ
+        θ̇
+        -(u₁ + u₂ + μ*g) * sin(θ) / μ
+        (u₁ + u₂ + μ*g) * cos(θ) / μ - g
+        (u₁ - u₂) * r / I_z
+    ]
+end
+
+quad2d_shifted(state, control) = quad2d_shifted(state, control, 0)
 
 function quad2d_approx!(derivatives, state, control, t)
     x, y, θ, ẋ, ẏ, θ̇ = state

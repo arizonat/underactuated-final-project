@@ -13,7 +13,7 @@ use_discrete = false;
 m = 0.486;
 r = 0.25;
 iz = 0.00383;
-g = 1;
+g = 9.81;
 
 dt = 0.01;
 plot_limit = 2;
@@ -22,17 +22,19 @@ max_sim_time = 50;
 
 % nominal conditions
 x0 = [0 0 0 0 0 0]';
-u0 = m*g*0.5*[1 1]';
+u0 = m*g*0.5*[0 0]';
+
+xs = [1; 1; 0; 0; 0; 0];
 
 % LQR
-Q = diag([10 10 90 1 1 r/2/pi]);
+Q = diag([10 10 10 1 1 r/2/pi]);
 R = [0.1 0.05;
      0.05 0.1];
 
 %% Dynamics
 syms x1 x2 x3 x4 x5 x6 u1 u2
  
-f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(u(1)+u(2))*sin(x(3)); (1/m)*(u(1)+u(2))*cos(x(3))-g; (1/iz)*r*(u(1)-u(2))];
+f_func = @(x, u) [x(4); x(5); x(6); -(1/m)*(m*g + u(1)+u(2))*sin(x(3)); (1/m)*(m*g + u(1)+u(2))*cos(x(3))-g; (1/iz)*r*(u(1)-u(2))];
 f_sym = f_func([x1 x2 x3 x4 x5 x6],[u1 u2]);
 
 %% Linearize
@@ -48,10 +50,12 @@ B = eval(subs(B_sym,[x1 x2 x3 x4 x5 x6 u1 u2],[x0; u0]'));
 
 %% Simulate
 ts = 0:dt:max_sim_time;
-x = rand(6,1);
-x(1:2) = x(1:2) * 2*plot_limit - plot_limit;
-x = [0 0 pi/2 0 0 0]';
-xs = [x];
+%x = rand(6,1);
+%x(1:2) = x(1:2) * 2*plot_limit - plot_limit;
+%x = [0 0 pi/2 0 0 0]';
+%x = [1 1 pi 0 0 0]';
+%xs = [x];
+x = xs;
 
 for t = ts
     % Update dynamics
