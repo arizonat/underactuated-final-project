@@ -36,7 +36,8 @@ function optimize_ρ(ρ, J★, J̇̂★, n, ϵ; polynomial_order = 2)
     return model
 end
 
-ρ_feasible_func(opt, a...) = ρ -> termination_status(opt(ρ, a...)) == FEASIBLE
+ρ_feasible_func(opt, a...; b...) =
+    ρ -> termination_status(opt(ρ, a...; b...)) == FEASIBLE
 
 function find_max_rho(
     f̂,
@@ -45,11 +46,12 @@ function find_max_rho(
     Q,
     R,
     ρ_init = 0.01,
-    Δmin = 0.0001,
+    Δmin = 0.1,
     Δ₀ = 10.0,
     ϵ = 1e-3,
 )
     n = length(x_G)
+    polynomial_order = 3
 
     A, B = linearize(f̂, x_G, u_G)
     K, S = do_lqr(A, B, Q, R)
@@ -62,7 +64,14 @@ function find_max_rho(
 
     J̇̂★(x̅) = 2 * x̅' * S * f⁽ᶜˡ⁾(x̅)
 
-    ρ_feasible = ρ_feasible_func(optimize_ρ, J★, J̇̂★, n, ϵ)
+    ρ_feasible = ρ_feasible_func(
+        optimize_ρ,
+        J★,
+        J̇̂★,
+        n,
+        ϵ,
+        polynomial_order = polynomial_order,
+    )
     ρ = line_search(ρ_init, ρ_feasible, Δmin, Δ₀)
     return ρ, K, S
 end

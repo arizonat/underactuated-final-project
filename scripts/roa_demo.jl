@@ -1,8 +1,10 @@
 using UnderactuatedFinalProject
 using LinearAlgebra: Diagonal
-using Plots
+using Plots, ColorSchemes
+using DifferentialEquations
 
 function main()
+    clibrary(:colorbrewer)
     f̂ = quad2d_approx
     x_G = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
     u_G = [0.0; 0.0]
@@ -12,6 +14,16 @@ function main()
     print(ρ)
     lyap(x, y) = sum([x y] * S[1:2, 1:2] * [x; y])
 
+    lyap(x, y) = sum([x y] * S[1:2, 1:2] * [x; y])
+    pl = contourf(
+        -1:0.05:1,
+        -5:0.05:5,
+        lyap,
+        levels = [0, ρ, Inf],
+        palette = :Pastel1,
+    )
+    plot!(pl, traj_x, traj_y)
+    display(pl)
 end
 
 main()
