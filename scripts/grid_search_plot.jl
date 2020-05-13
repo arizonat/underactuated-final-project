@@ -25,10 +25,10 @@ function main()
     K, S = do_lqr(A, B, Q, R)
 
     control(x, t) = -K * x
-    xs = -10:0.1:10
-    ys = -10:0.1:10
+    xs = -10:0.2:10
+    ys = -10:0.2:10
     u0s = [[x; y; 0.0; 0.0; 0.0; 0.0] for x in xs for y in ys]
-    tspan = (0.0, 10.0)
+    tspan = (0.0, 100.0)
     results = Float64[]
     for u0 in u0s
         prob = ODEProblem(quad2d_shifted!, u0, tspan, control)
@@ -37,13 +37,18 @@ function main()
     end
     rs = reshape(results, (length(xs), length(ys)))
     pl = contour(xs, ys, rs, fill = true)
-    ρ = 0.7805688476562498
-    V(x, y) = [x y] * s[1:2, 1:2] * [x; y]
-    X = repeat(reshape(xs, 1, :), length(ys), 1)
-    Y = repeat(ys, 1, length(xs))
-    Z = map(f, X, Y)
-    contour!(pl, xs, ys, Z, fill=false, levels=[0, ρ, Inf])
     display(pl)
+    savefig("pl1.png")
+    ρ = 0.7805688476562498
+    V(x, y) = sum([x y] * S[1:2, 1:2] * [x; y])
+    pl = contourf(xs, ys, V, fill = false, levels = [0.0, ρ, maximum(Z)])
+    display(pl)
+    savefig("pl2.png")
+
+    pl = contourf(xs, ys, V, fill = true, levels = [0.0, ρ, maximum(Z)])
+    display(pl)
+    savefig("pl3.png")
+
     return xs, ys, rs
 end
 
