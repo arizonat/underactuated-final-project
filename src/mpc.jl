@@ -34,7 +34,7 @@ function mpc(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt)
     return Δxᵢ, Δuᵢ, m
 end
 
-function mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat)
+function mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat, num_sat=2)
     X = size(xᵢʳᵉᶠ)[1]
     U = size(uᵢʳᵉᶠ)[1]
 
@@ -48,7 +48,9 @@ function mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat)
         for n in 1:N
             for u in 1:U
                 @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] <= sat)
-                @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] >= -sat )
+                if num_sat == 2
+                    @constraint(m, Δuᵢ[u,n] + uᵢʳᵉᶠ[u,n] >= -sat)
+                end
             end
         end
     end
@@ -147,7 +149,8 @@ function nonlinear_mpc_optimal_control(
     reject_ratio = 0.8,
     N = 100,
     Δt = 0.75,
-    sat = 0
+    sat = 0,
+    sat_number = 2
 )
     num_iters = 50 # Number of MPC optimizations to run
     reject_ratio = 0.8 # Fraction of trajectory to throw out
@@ -166,7 +169,7 @@ function nonlinear_mpc_optimal_control(
     rej = Int(reject_ratio * N)
     for i in 1:num_iters
         x̂ᵢ = (i == 1) ? x₀ : xs[:, end]
-        x, u, m = mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat)
+        x, u, m = mpc_saturated(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt, sat, sat_number)
         xs = hcat(xs, value.(x)[:, 1:end-rej] + xᵢʳᵉᶠ[:, 1:end-rej])
         us = hcat(us, value.(u) + uᵢʳᵉᶠ)
     end

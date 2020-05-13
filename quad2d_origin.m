@@ -13,7 +13,7 @@ use_discrete = false;
 m = 0.486;
 r = 0.25;
 iz = 0.00383;
-g = 9.81;
+g = 1;
 
 dt = 0.01;
 plot_limit = 2;
