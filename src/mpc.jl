@@ -34,7 +34,9 @@ function mpc(f, ℓ, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N, dt)
     optimize!(m)
     return Δxᵢ, Δuᵢ, m
 end
-
+"""
+http://cse.lab.imtlucca.it/~bemporad/publications/papers/ijc_rtiltv.pdf
+"""
 function linear_mpc(A, B, Q, R, x̂ᵢ, xᵢʳᵉᶠ, uᵢʳᵉᶠ, N)
     X = size(xᵢʳᵉᶠ)[1]
     U = size(uᵢʳᵉᶠ)[1]
